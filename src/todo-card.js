@@ -846,6 +846,10 @@ class TodoListCard extends LitElement {
                         <ha-icon icon="${this._filters.completed ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon>
                         <span>${this._t('completed')}</span>
                     </div>
+                    <div class="filter-option" @click="${() => this._toggleFilter('snoozed')}">
+                        <ha-icon icon="${this._filters.snoozed ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon>
+                        <span>${this._t('snoozed')}</span>
+                    </div>
                 </div>
                 ` : ''}
             </div>
