@@ -301,6 +301,10 @@ class TodoListCard extends LitElement {
 
       _editedTaskId: { state: true },
       _expandedTaskId: { state: true },
+      _snoozeMenuTaskId: { state: true },
+      _snoozeCustomMode: { state: true },
+      _snoozeCustomDate: { state: true },
+      _snoozeCustomTime: { state: true },
 
       // Add/Edit inputs
       _newItemSummary: { state: true },
@@ -909,7 +913,13 @@ class TodoListCard extends LitElement {
     let countText = this._config.mode === 'tasks'
       ? this._t('completedTasks', { active: activeItems.length, completed: completedItems.length })
       : this._t('completedItemsChecked', { active: activeItems.length, completed: completedItems.length });
-    if (this._searchQuery) { countText = this._t('resultsFound', { count: activeItems.length + completedItems.length }); }
+    if (this._filters.snoozed && snoozedItems.length > 0) {
+      countText = `${countText} · ${snoozedItems.length} ${this._t('snoozed').toLowerCase()}`;
+    }
+    if (this._searchQuery) {
+      const searchTotal = activeItems.length + completedItems.length + (this._filters.snoozed ? snoozedItems.length : 0);
+      countText = this._t('resultsFound', { count: searchTotal });
+    }
 
     return html`
       <ha-card style="background: ${this._config.card_background};">
@@ -1278,7 +1288,7 @@ class TodoListCard extends LitElement {
         border-radius: 8px;
         padding: 8px 0;
         margin: 4px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        box-shadow: var(--shadow-elevation-medium_-_box-shadow, 0 2px 8px rgba(0,0,0,0.15));
       }
       .snooze-menu-title {
         font-weight: 500;
@@ -1295,7 +1305,10 @@ class TodoListCard extends LitElement {
         cursor: pointer;
       }
       .snooze-option:hover {
-        background: rgba(0,0,0,0.05);
+        background: var(--divider-color, rgba(127,127,127,0.15));
+      }
+      .snooze-option-label {
+        flex: 1 1 auto;
       }
       .snooze-option-sub {
         opacity: 0.6;
@@ -1303,7 +1316,7 @@ class TodoListCard extends LitElement {
       }
       .snooze-divider {
         height: 1px;
-        background: rgba(0,0,0,0.1);
+        background: var(--divider-color, rgba(127,127,127,0.2));
         margin: 4px 0;
       }
       .snooze-custom {
@@ -1316,7 +1329,7 @@ class TodoListCard extends LitElement {
       .snooze-custom input {
         flex: 1 1 auto;
         padding: 6px 8px;
-        border: 1px solid rgba(0,0,0,0.2);
+        border: 1px solid var(--divider-color, rgba(127,127,127,0.3));
         border-radius: 4px;
         background: transparent;
         color: inherit;
