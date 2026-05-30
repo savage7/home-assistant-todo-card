@@ -780,11 +780,13 @@ class TodoListCard extends LitElement {
 
         // Status Filtering
         const isCompleted = task.status === 'completed';
-        const overdueStatus = !isCompleted ? this._getDueDateStatus(task.due) : null;
+        const isSnoozed = this._isSnoozed(task);
+        const overdueStatus = !isCompleted && !isSnoozed ? this._getDueDateStatus(task.due) : null;
         const isOverdue = overdueStatus === 'overdue';
-        const isActive = !isCompleted && !isOverdue;
+        const isActive = !isCompleted && !isOverdue && !isSnoozed;
 
         if (isCompleted && !this._filters.completed) return false;
+        if (isSnoozed && !this._filters.snoozed) return false;
         if (isOverdue && !this._filters.overdue) return false;
         if (isActive && !this._filters.active) return false;
         return true;
@@ -797,7 +799,8 @@ class TodoListCard extends LitElement {
       if (valA < valB) return -1 * direction; if (valA > valB) return 1 * direction; return 0;
     };
 
-    const activeItems = allTasks.filter(t => t.status === 'needs_action').sort(sortFn);
+    const activeItems = allTasks.filter(t => t.status === 'needs_action' && !this._isSnoozed(t)).sort(sortFn);
+    const snoozedItems = allTasks.filter(t => t.status === 'needs_action' && this._isSnoozed(t)).sort(sortFn);
     const completedItems = allTasks.filter(t => t.status === 'completed').sort(sortFn);
 
     const isFrameless = this._config.card_background === 'none'; const headerPadding = isFrameless ? '6px 4px 12px 16px' : '6px 20px 12px 20px'; const contentPadding = isFrameless ? '0 4px 4px' : '0 12px 12px';
@@ -871,6 +874,7 @@ class TodoListCard extends LitElement {
           ${this._isAddAreaOpen ? this._renderAddForm() : ''}
           ${allTasks.length === 0 && !this._isAddAreaOpen && !this._isLoading ? html`<div class="empty-list">${this._t('noItems')}</div>` : ''}
           ${activeItems.map(item => this._renderItem(item))}
+          ${snoozedItems.map(item => this._renderItem(item))}
           ${completedItems.map(item => this._renderItem(item))}
         </div>
       </ha-card>
