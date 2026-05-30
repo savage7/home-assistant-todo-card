@@ -441,6 +441,10 @@ class TodoListCard extends LitElement {
     this._isAddAreaOpen = false;
     this._editedTaskId = null;
     this._expandedTaskId = null;
+    this._snoozeMenuTaskId = null;
+    this._snoozeCustomMode = false;
+    this._snoozeCustomDate = '';
+    this._snoozeCustomTime = '';
     this._isLoading = false;
     this._error = null;
     this._isFilterOpen = false;
@@ -1019,74 +1023,100 @@ class TodoListCard extends LitElement {
   }
 
   _renderTask(task) {
-    const isCompleted = task.status === 'completed'; const textColor = isCompleted ? this._config.completed_text_color : this._config.text_color; const metadata = task._cachedMetadata ?? {}; const description = metadata.description || null; const priority = metadata.priority || DEFAULT_PRIORITY; const icon = metadata.icon || this._getDefaultTaskIcon(); const dueDate = task.due || null; const dueDateStatus = this._getDueDateStatus(dueDate);
-    const subtasks = metadata.subtasks || []; const completedSubtasks = subtasks.filter(s => s.status === 'completed').length; const totalSubtasks = subtasks.length; const hasDescription = !!description; const hasDueDate = !isCompleted && !!dueDate;
-    return html`
-      <div class="task-container">
-        <div class="task-item ${isCompleted ? 'completed' : 'active'} ${dueDateStatus || ''}" @click="${() => this._toggleExpand(task.uid)}" style="background-color: ${isCompleted ? this._config.completed_color : this._config.card_color}; color: ${textColor};">
-          <div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>
-          <div class="task-text">
-            <div class="summary">
-              <span>${task.summary}</span>
-              ${this._config.show_priority && !isCompleted ? this._renderPriorityLabel(priority) : ''}
-              ${totalSubtasks > 0 && !isCompleted ? html`
-                <div class="subtask-progress" title="${completedSubtasks} of ${totalSubtasks} completed">
-                  <ha-icon icon="mdi:format-list-checks"></ha-icon>
-                  <span>${completedSubtasks}/${totalSubtasks}</span>
-                  <div class="progress-bar-background"><div class="progress-bar-foreground" style="width: ${totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0}%;"></div></div>
-                </div>
-              ` : ''}
-            </div>
-            ${hasDescription || hasDueDate ? html`
-              <div class="priority">
-                ${hasDescription ? html`<span>${description}</span>` : ''}
-                ${hasDescription && hasDueDate ? html`<span class="separator"> </span>` : ''}
-                ${hasDueDate ? html`<span class="due-date-wrapper"><ha-icon icon="mdi:clock-time-four"></ha-icon>${this._formatDueDate(dueDate)}</span>` : ''}
+  const isCompleted = task.status === 'completed';
+  const textColor = isCompleted ? this._config.completed_text_color : this._config.text_color;
+  const metadata = task._cachedMetadata ?? {};
+  const description = metadata.description || null;
+  const priority = metadata.priority || DEFAULT_PRIORITY;
+  const icon = metadata.icon || this._getDefaultTaskIcon();
+  const dueDate = task.due || null;
+  const dueDateStatus = this._getDueDateStatus(dueDate);
+  const subtasks = metadata.subtasks || [];
+  const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
+  const totalSubtasks = subtasks.length;
+  const hasDescription = !!description;
+  const hasDueDate = !isCompleted && !!dueDate;
+  const isSnoozed = this._isSnoozed(task);
+  const isExpanded = this._expandedTaskId === task.uid;
+  return html`
+    <div class="task-container">
+      <div class="task-item ${isCompleted ? 'completed' : 'active'} ${dueDateStatus || ''}" style="background-color: ${isCompleted ? this._config.completed_color : this._config.card_color}; color: ${textColor};">
+        <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, task)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
+        <div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>
+        <div class="task-text" @click="${(e) => this._handleStatusUpdate(e, task)}">
+          <div class="summary">
+            <span>${task.summary}</span>
+            ${this._config.show_priority && !isCompleted ? this._renderPriorityLabel(priority) : ''}
+            ${totalSubtasks > 0 && !isCompleted ? html`
+              <div class="subtask-progress" title="${completedSubtasks} of ${totalSubtasks} completed">
+                <ha-icon icon="mdi:format-list-checks"></ha-icon>
+                <span>${completedSubtasks}/${totalSubtasks}</span>
+                <div class="progress-bar-background"><div class="progress-bar-foreground" style="width: ${totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0}%;"></div></div>
               </div>
             ` : ''}
           </div>
-          <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, task)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
+          ${hasDescription || hasDueDate ? html`
+            <div class="priority">
+              ${hasDescription ? html`<span>${description}</span>` : ''}
+              ${hasDescription && hasDueDate ? html`<span class="separator"> </span>` : ''}
+              ${hasDueDate ? html`<span class="due-date-wrapper"><ha-icon icon="mdi:clock-time-four"></ha-icon>${this._formatDueDate(dueDate)}</span>` : ''}
+            </div>
+          ` : ''}
         </div>
-        ${this._expandedTaskId === task.uid ? this._renderSubtasks(task) : ''}
-        ${this._editedTaskId === task.uid ? this._renderEditForm(task) : ''}
+        ${!isCompleted ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, task)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
+        <div class="expand-button" @click="${(e) => { e.stopPropagation(); this._toggleExpand(task.uid); }}"><ha-icon icon="${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}"></ha-icon></div>
       </div>
-    `;
-  }
+      ${this._snoozeMenuTaskId === task.uid ? this._renderSnoozeMenu(task) : ''}
+      ${this._expandedTaskId === task.uid ? this._renderSubtasks(task) : ''}
+      ${this._editedTaskId === task.uid ? this._renderEditForm(task) : ''}
+    </div>
+  `;
+}
 
   _renderShoppingItem(item) {
-    const isCompleted = item.status === 'completed'; const textColor = isCompleted ? this._config.completed_text_color : this._config.text_color; const metadata = item._cachedMetadata ?? {}; const description = metadata.description || null; const link = metadata.link || null; const quantity = metadata.quantity || null;
-    const subtasks = metadata.subtasks || []; const completedSubtasks = subtasks.filter(s => s.status === 'completed').length; const totalSubtasks = subtasks.length;
-    // Icon logic for shopping
-    const icon = metadata.icon || DEFAULT_ICON;
-    // Show icon only if it's NOT the default blank outline
-    const showIcon = icon !== DEFAULT_ICON;
+  const isCompleted = item.status === 'completed';
+  const textColor = isCompleted ? this._config.completed_text_color : this._config.text_color;
+  const metadata = item._cachedMetadata ?? {};
+  const description = metadata.description || null;
+  const link = metadata.link || null;
+  const quantity = metadata.quantity || null;
+  const subtasks = metadata.subtasks || [];
+  const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
+  const totalSubtasks = subtasks.length;
+  const icon = metadata.icon || DEFAULT_ICON;
+  const showIcon = icon !== DEFAULT_ICON;
+  const isSnoozed = this._isSnoozed(item);
+  const isExpanded = this._expandedTaskId === item.uid;
 
-    return html`
-      <div class="task-container">
-        <div class="task-item shopping-item ${isCompleted ? 'completed' : 'active'}" @click="${() => this._toggleExpand(item.uid)}" style="background-color: ${isCompleted ? this._config.completed_color : this._config.card_color}; color: ${textColor};">
-          ${showIcon ? html`<div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>` : ''}
-          <div class="task-text" style="${showIcon ? 'padding-left: 0;' : ''}">
-            <div class="summary">
-                <span>${item.summary}</span>
-                ${quantity ? html`<span class="quantity">(x${quantity})</span>` : ''}
-                ${totalSubtasks > 0 && !isCompleted ? html`
-                    <div class="subtask-progress" title="${completedSubtasks} of ${totalSubtasks} completed">
-                        <ha-icon icon="mdi:format-list-checks"></ha-icon>
-                        <span>${completedSubtasks}/${totalSubtasks}</span>
-                        <div class="progress-bar-background"><div class="progress-bar-foreground" style="width: ${totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0}%;"></div></div>
-                    </div>
-                ` : ''}
-            </div>
-            ${description ? html`<div class="priority">${description}</div>` : ''}
+  return html`
+    <div class="task-container">
+      <div class="task-item shopping-item ${isCompleted ? 'completed' : 'active'}" style="background-color: ${isCompleted ? this._config.completed_color : this._config.card_color}; color: ${textColor};">
+        <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, item)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
+        ${showIcon ? html`<div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>` : ''}
+        <div class="task-text" style="${showIcon ? 'padding-left: 0;' : ''}" @click="${(e) => this._handleStatusUpdate(e, item)}">
+          <div class="summary">
+              <span>${item.summary}</span>
+              ${quantity ? html`<span class="quantity">(x${quantity})</span>` : ''}
+              ${totalSubtasks > 0 && !isCompleted ? html`
+                  <div class="subtask-progress" title="${completedSubtasks} of ${totalSubtasks} completed">
+                      <ha-icon icon="mdi:format-list-checks"></ha-icon>
+                      <span>${completedSubtasks}/${totalSubtasks}</span>
+                      <div class="progress-bar-background"><div class="progress-bar-foreground" style="width: ${totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0}%;"></div></div>
+                  </div>
+              ` : ''}
           </div>
-          ${link ? html`<ha-icon class="link-button" icon="mdi:open-in-new" @click="${(e) => this._handleOpenLink(e, link)}"></ha-icon>` : ''}
-          <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, item)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
+          ${description ? html`<div class="priority">${description}</div>` : ''}
         </div>
-        ${this._expandedTaskId === item.uid ? this._renderSubtasks(item) : ''}
-        ${this._editedTaskId === item.uid ? this._renderEditForm(item) : ''}
+        ${link ? html`<ha-icon class="link-button" icon="mdi:open-in-new" @click="${(e) => this._handleOpenLink(e, link)}"></ha-icon>` : ''}
+        ${!isCompleted ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, item)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
+        <div class="expand-button" @click="${(e) => { e.stopPropagation(); this._toggleExpand(item.uid); }}"><ha-icon icon="${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}"></ha-icon></div>
       </div>
-    `;
-  }
+      ${this._snoozeMenuTaskId === item.uid ? this._renderSnoozeMenu(item) : ''}
+      ${this._expandedTaskId === item.uid ? this._renderSubtasks(item) : ''}
+      ${this._editedTaskId === item.uid ? this._renderEditForm(item) : ''}
+    </div>
+  `;
+}
 
   static get styles() {
     return css`
@@ -1134,6 +1164,21 @@ class TodoListCard extends LitElement {
       .due-date-wrapper ha-icon { --mdc-icon-size: 1.1em; margin-right: 4px; opacity: 0.9; }
       .checkbox { margin-left: 8px; margin-right: 8px; border-radius: 50%; padding: 4px; transition: background-color 0.2s; }
       .checkbox:hover { background-color: rgba(255, 255, 255, 0.1); }
+      .snooze-button, .expand-button {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+        opacity: 0.6;
+        transition: opacity 0.15s ease;
+      }
+      .snooze-button:hover, .expand-button:hover {
+        opacity: 1;
+      }
+      .task-text {
+        cursor: pointer;
+      }
       .add-edit-area { border-radius: var(--ha-card-border-radius, 12px); margin-bottom: 12px; animation: slide-down 0.3s ease-out; position: relative; z-index: 0; padding: 16px; }
       .add-edit-area.rapid-add { display: flex; flex-direction: row; align-items: center; padding: 8px 16px; justify-content: space-between; gap: 8px; }
       .add-edit-area.rapid-add ha-input { flex-grow: 1; margin-bottom: 0; }
