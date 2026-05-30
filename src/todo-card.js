@@ -479,6 +479,12 @@ class TodoListCard extends LitElement {
     if (this._isFilterOpen) {
       this._isFilterOpen = false;
     }
+    if (this._snoozeMenuTaskId !== null) {
+      this._snoozeMenuTaskId = null;
+      this._snoozeCustomMode = false;
+      this._snoozeCustomDate = '';
+      this._snoozeCustomTime = '';
+    }
   }
 
   _resetNewItemInputs() {
@@ -740,6 +746,98 @@ class TodoListCard extends LitElement {
     if (!due || !due.includes('T')) return false;
     return new Date(due).getTime() > Date.now();
   }
+
+  _computeSnoozePresets() {
+    const lang = this._hass?.locale?.language || this._activeLanguage || 'en';
+    const fmt = new Intl.DateTimeFormat(lang, { weekday: 'short' });
+    const pad = (n) => String(n).padStart(2, '0');
+    const at0700 = (d) => {
+      d.setHours(7, 0, 0, 0);
+      return d;
+    };
+    const toIso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+    const label = (d) => `${fmt.format(d)}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+    const now = new Date();
+
+    const tomorrow = at0700(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+
+    const dow = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const daysUntilMonday = ((1 - dow + 7) % 7) || 7;
+    const nextMonday = at0700(new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilMonday));
+
+    const daysUntilSaturday = ((6 - dow + 7) % 7) || 7;
+    const nextSaturday = at0700(new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilSaturday));
+
+    return [
+      { key: 'tomorrow', labelKey: 'snoozeTomorrow', subLabel: label(tomorrow), iso: toIso(tomorrow) },
+      { key: 'nextWeek', labelKey: 'snoozeNextWeek', subLabel: label(nextMonday), iso: toIso(nextMonday) },
+      { key: 'nextWeekend', labelKey: 'snoozeNextWeekend', subLabel: label(nextSaturday), iso: toIso(nextSaturday) },
+    ];
+  }
+
+  _handleOpenSnoozeMenu(e, task) {
+    e.stopPropagation();
+    this._snoozeMenuTaskId = this._snoozeMenuTaskId === task.uid ? null : task.uid;
+    this._snoozeCustomMode = false;
+    this._snoozeCustomDate = '';
+    this._snoozeCustomTime = '';
+  }
+
+  async _handleSnooze(task, isoDatetime) {
+    try {
+      await this._hass.callService(
+        "todo", "update_item",
+        { item: task.uid, due_datetime: isoDatetime },
+        { entity_id: this._config.entity }
+      );
+      this._snoozeMenuTaskId = null;
+      this._snoozeCustomMode = false;
+      this._snoozeCustomDate = '';
+      this._snoozeCustomTime = '';
+      this.fetchTodoItems();
+    } catch (err) {
+      console.error('Error snoozing item:', err);
+      this._error = this._t('failedToUpdateItem', { message: err.message });
+    }
+  }
+
+  _handleConfirmCustomSnooze(task) {
+    if (!this._snoozeCustomDate) return;
+    const time = this._snoozeCustomTime || '07:00';
+    const iso = `${this._snoozeCustomDate}T${time}:00`;
+    this._handleSnooze(task, iso);
+  }
+
+  _renderSnoozeMenu(task) {
+    const presets = this._computeSnoozePresets();
+    return html`
+      <div class="snooze-menu" @click="${(e) => e.stopPropagation()}" style="background-color: ${this._config.card_color};">
+        <div class="snooze-menu-title">${this._t('snoozeUntil')}</div>
+        ${presets.map(p => html`
+          <div class="snooze-option" @click="${() => this._handleSnooze(task, p.iso)}">
+            <span class="snooze-option-label">${this._t(p.labelKey)}</span>
+            <span class="snooze-option-sub">${p.subLabel}</span>
+          </div>
+        `)}
+        <div class="snooze-divider"></div>
+        ${this._snoozeCustomMode ? html`
+          <div class="snooze-custom">
+            <input type="date" .value="${this._snoozeCustomDate}" @input="${(e) => this._snoozeCustomDate = e.target.value}" />
+            <input type="time" .value="${this._snoozeCustomTime}" @input="${(e) => this._snoozeCustomTime = e.target.value}" />
+            <mwc-button @click="${() => { this._snoozeCustomMode = false; this._snoozeCustomDate = ''; this._snoozeCustomTime = ''; }}" class="btn btn-cancel">${this._t('cancel')}</mwc-button>
+            <mwc-button raised @click="${() => this._handleConfirmCustomSnooze(task)}" class="btn btn-add">${this._t('save')}</mwc-button>
+          </div>
+        ` : html`
+          <div class="snooze-option" @click="${() => { this._snoozeCustomMode = true; }}">
+            <ha-icon icon="mdi:calendar"></ha-icon>
+            <span class="snooze-option-label">${this._t('snoozePickDateTime')}</span>
+          </div>
+        `}
+      </div>
+    `;
+  }
+
   _getPriorityInfo(priority) {
     const option = PRIORITY_INFO[this._sanitizePriority(priority)];
     if (!option) return null;
@@ -1175,6 +1273,54 @@ class TodoListCard extends LitElement {
       }
       .snooze-button:hover, .expand-button:hover {
         opacity: 1;
+      }
+      .snooze-menu {
+        border-radius: 8px;
+        padding: 8px 0;
+        margin: 4px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      }
+      .snooze-menu-title {
+        font-weight: 500;
+        padding: 6px 16px;
+        opacity: 0.7;
+        font-size: 0.9em;
+      }
+      .snooze-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 16px;
+        cursor: pointer;
+      }
+      .snooze-option:hover {
+        background: rgba(0,0,0,0.05);
+      }
+      .snooze-option-sub {
+        opacity: 0.6;
+        font-size: 0.9em;
+      }
+      .snooze-divider {
+        height: 1px;
+        background: rgba(0,0,0,0.1);
+        margin: 4px 0;
+      }
+      .snooze-custom {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+      }
+      .snooze-custom input {
+        flex: 1 1 auto;
+        padding: 6px 8px;
+        border: 1px solid rgba(0,0,0,0.2);
+        border-radius: 4px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
       }
       .task-text {
         cursor: pointer;
