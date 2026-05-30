@@ -875,7 +875,7 @@ class TodoListCard extends LitElement {
     let allTasks = Array.isArray(this._tasks) ? this._tasks : [];
 
     // Filter Logic & Search Logic
-    if (this._config.show_filter_menu || this._searchQuery) {
+    {
       allTasks = allTasks.filter(task => {
         // Search Filtering
         if (this._searchQuery) {
