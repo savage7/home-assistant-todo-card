@@ -449,7 +449,7 @@ class TodoListCard extends LitElement {
     this._translations = FALLBACK_TRANSLATIONS;
     this._activeLanguage = 'en';
     // Default filters (will be overwritten by loadFilters if saved data exists)
-    this._filters = { active: true, overdue: true, completed: true };
+    this._filters = { active: true, overdue: true, completed: true, snoozed: false };
     this._resetNewItemInputs();
     this._resetEditInputs();
     this._boundClickListener = this._handleOutsideClick.bind(this);
@@ -519,9 +519,10 @@ class TodoListCard extends LitElement {
     if (stored) {
       try {
         this._filters = JSON.parse(stored);
+        if (typeof this._filters.snoozed !== 'boolean') this._filters.snoozed = false;
       } catch (e) {
         console.warn("Failed to parse stored filters, resetting to default");
-        this._filters = { active: true, overdue: true, completed: true };
+        this._filters = { active: true, overdue: true, completed: true, snoozed: false };
       }
     }
   }
@@ -729,6 +730,12 @@ class TodoListCard extends LitElement {
 
   _handleKeyDown(ev, action) { if (ev.key === 'Enter') { ev.preventDefault(); action(); } else if (ev.key === 'Escape') { ev.preventDefault(); if (this._isAddAreaOpen) { this._isAddAreaOpen = false; this._resetNewItemInputs(); } else if (this._editedTaskId) { this._editedTaskId = null; this._resetEditInputs(); } else if (this._expandedTaskId) { this._expandedTaskId = null; } } }
   _getDueDateStatus(dueDateStr) { if (!dueDateStr) return null; const today = new Date(); const dueDate = new Date(dueDateStr); const todayStr = today.toISOString().split('T')[0]; const dueStr = dueDateStr.split('T')[0]; if (dueStr < todayStr) return 'overdue'; if (dueStr === todayStr) return 'due-today'; return null; }
+  _isSnoozed(task) {
+    if (!task || task.status === 'completed') return false;
+    const due = task.due;
+    if (!due || !due.includes('T')) return false;
+    return new Date(due).getTime() > Date.now();
+  }
   _getPriorityInfo(priority) {
     const option = PRIORITY_INFO[this._sanitizePriority(priority)];
     if (!option) return null;
