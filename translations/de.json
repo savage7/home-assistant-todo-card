@@ -27,6 +27,8 @@
   "editItem": "Element bearbeiten",
   "editTask": "Aufgabe bearbeiten",
   "enableQuickAdd": "Schnelles Hinzufugen aktivieren",
+  "enableSnooze": "Zurückstellen aktivieren",
+  "showIcons": "Symbole anzeigen",
   "entity": "Entitat",
   "failedToAddItem": "Element konnte nicht hinzugefugt werden: {message}",
   "failedToClearCompleted": "Erledigte Elemente konnten nicht geloscht werden: {message}",

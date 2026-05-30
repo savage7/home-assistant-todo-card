@@ -27,6 +27,8 @@
   "editItem": "Rediger vare",
   "editTask": "Rediger oppgave",
   "enableQuickAdd": "Aktiver hurtiglegging",
+  "enableSnooze": "Aktiver utsettelse",
+  "showIcons": "Vis ikoner",
   "entity": "Entitet",
   "failedToAddItem": "Kunne ikke legge til element: {message}",
   "failedToClearCompleted": "Kunne ikke slette fullforte elementer: {message}",

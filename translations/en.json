@@ -27,6 +27,8 @@
   "editItem": "Edit Item",
   "editTask": "Edit Task",
   "enableQuickAdd": "Enable Quick Add (Rapid Entry)",
+  "enableSnooze": "Enable snooze",
+  "showIcons": "Show item icons",
   "entity": "Entity",
   "failedToAddItem": "Failed to add item: {message}",
   "failedToClearCompleted": "Failed to clear completed items: {message}",

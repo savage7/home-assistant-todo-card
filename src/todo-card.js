@@ -61,6 +61,8 @@ const FALLBACK_TRANSLATIONS = {
   editItem: 'Edit Item',
   editTask: 'Edit Task',
   enableQuickAdd: 'Enable Quick Add (Rapid Entry)',
+  enableSnooze: 'Enable snooze',
+  showIcons: 'Show item icons',
   entity: 'Entity',
   failedToAddItem: 'Failed to add item: {message}',
   failedToClearCompleted: 'Failed to clear completed items: {message}',
@@ -147,6 +149,8 @@ const BUILTIN_TRANSLATIONS = {
     editItem: 'Rediger vare',
     editTask: 'Rediger oppgave',
     enableQuickAdd: 'Aktiver hurtiglegging',
+    enableSnooze: 'Aktiver utsettelse',
+    showIcons: 'Vis ikoner',
     entity: 'Entitet',
     failedToAddItem: 'Kunne ikke legge til element: {message}',
     failedToClearCompleted: 'Kunne ikke slette fullforte elementer: {message}',
@@ -227,6 +231,8 @@ const BUILTIN_TRANSLATIONS = {
     editItem: 'Element bearbeiten',
     editTask: 'Aufgabe bearbeiten',
     enableQuickAdd: 'Schnelles Hinzufugen aktivieren',
+    enableSnooze: 'Zurückstellen aktivieren',
+    showIcons: 'Symbole anzeigen',
     entity: 'Entitat',
     failedToAddItem: 'Element konnte nicht hinzugefugt werden: {message}',
     failedToClearCompleted: 'Erledigte Elemente konnten nicht geloscht werden: {message}',
@@ -357,6 +363,8 @@ class TodoListCard extends LitElement {
       show_search_button: true,
       show_clear_button: true,
       quick_add: false,
+      show_icons: true,
+      enable_snooze: true,
     };
   }
 
@@ -519,6 +527,8 @@ class TodoListCard extends LitElement {
       show_search_button: true,
       show_clear_button: true,
       quick_add: false,
+      show_icons: true,
+      enable_snooze: true,
       ...config
     };
     this._loadTranslations();
@@ -886,7 +896,7 @@ class TodoListCard extends LitElement {
 
         // Status Filtering
         const isCompleted = task.status === 'completed';
-        const isSnoozed = this._isSnoozed(task);
+        const isSnoozed = this._config.enable_snooze !== false && this._isSnoozed(task);
         const overdueStatus = !isCompleted && !isSnoozed ? this._getDueDateStatus(task.due) : null;
         const isOverdue = overdueStatus === 'overdue';
         const isActive = !isCompleted && !isOverdue && !isSnoozed;
@@ -905,8 +915,9 @@ class TodoListCard extends LitElement {
       if (valA < valB) return -1 * direction; if (valA > valB) return 1 * direction; return 0;
     };
 
-    const activeItems = allTasks.filter(t => t.status === 'needs_action' && !this._isSnoozed(t)).sort(sortFn);
-    const snoozedItems = allTasks.filter(t => t.status === 'needs_action' && this._isSnoozed(t)).sort(sortFn);
+    const snoozeEnabled = this._config.enable_snooze !== false;
+    const activeItems = allTasks.filter(t => t.status === 'needs_action' && !(snoozeEnabled && this._isSnoozed(t))).sort(sortFn);
+    const snoozedItems = allTasks.filter(t => t.status === 'needs_action' && snoozeEnabled && this._isSnoozed(t)).sort(sortFn);
     const completedItems = allTasks.filter(t => t.status === 'completed').sort(sortFn);
 
     const isFrameless = this._config.card_background === 'none'; const headerPadding = isFrameless ? '6px 4px 12px 16px' : '6px 20px 12px 20px'; const contentPadding = isFrameless ? '0 4px 4px' : '0 12px 12px';
@@ -958,10 +969,11 @@ class TodoListCard extends LitElement {
                         <ha-icon icon="${this._filters.completed ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon>
                         <span>${this._t('completed')}</span>
                     </div>
+                    ${this._config.enable_snooze !== false ? html`
                     <div class="filter-option" @click="${() => this._toggleFilter('snoozed')}">
                         <ha-icon icon="${this._filters.snoozed ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon>
                         <span>${this._t('snoozed')}</span>
-                    </div>
+                    </div>` : ''}
                 </div>
                 ` : ''}
             </div>
@@ -1149,7 +1161,7 @@ class TodoListCard extends LitElement {
   return html`
     <div class="task-container">
       <div class="task-item ${isCompleted ? 'completed' : 'active'} ${dueDateStatus || ''}" style="background-color: ${isCompleted ? this._config.completed_color : this._config.card_color}; color: ${textColor};">
-        <div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>
+        ${this._config.show_icons !== false ? html`<div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>` : ''}
         <div class="task-text" @click="${(e) => this._handleStatusUpdate(e, task)}">
           <div class="summary">
             <span>${task.summary}</span>
@@ -1170,7 +1182,7 @@ class TodoListCard extends LitElement {
             </div>
           ` : ''}
         </div>
-        ${!isCompleted ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, task)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
+        ${!isCompleted && this._config.enable_snooze !== false ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, task)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
         <div class="expand-button" @click="${(e) => { e.stopPropagation(); this._toggleExpand(task.uid); }}"><ha-icon icon="${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}"></ha-icon></div>
         <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, task)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
       </div>
@@ -1192,7 +1204,7 @@ class TodoListCard extends LitElement {
   const completedSubtasks = subtasks.filter(s => s.status === 'completed').length;
   const totalSubtasks = subtasks.length;
   const icon = metadata.icon || DEFAULT_ICON;
-  const showIcon = icon !== DEFAULT_ICON;
+  const showIcon = icon !== DEFAULT_ICON && this._config.show_icons !== false;
   const isSnoozed = this._isSnoozed(item);
   const isExpanded = this._expandedTaskId === item.uid;
 
@@ -1215,7 +1227,7 @@ class TodoListCard extends LitElement {
           ${description ? html`<div class="priority">${description}</div>` : ''}
         </div>
         ${link ? html`<ha-icon class="link-button" icon="mdi:open-in-new" @click="${(e) => this._handleOpenLink(e, link)}"></ha-icon>` : ''}
-        ${!isCompleted ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, item)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
+        ${!isCompleted && this._config.enable_snooze !== false ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, item)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
         <div class="expand-button" @click="${(e) => { e.stopPropagation(); this._toggleExpand(item.uid); }}"><ha-icon icon="${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}"></ha-icon></div>
         <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, item)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
       </div>
@@ -1592,6 +1604,8 @@ class TodoListCardEditor extends LitElement {
         <ha-formfield label="${this._t('showSearchButton')}"><ha-switch .checked=${this._config.show_search_button !== false} @change=${this._showSearchButtonChanged}></ha-switch></ha-formfield>
         <ha-formfield label="${this._t('showClearButton')}"><ha-switch .checked=${this._config.show_clear_button !== false} @change=${this._showClearButtonChanged}></ha-switch></ha-formfield>
         <ha-formfield label="${this._t('enableQuickAdd')}"><ha-switch .checked=${this._config.quick_add === true} @change=${this._quickAddChanged}></ha-switch></ha-formfield>
+        <ha-formfield label="${this._t('showIcons')}"><ha-switch .checked=${this._config.show_icons !== false} @change=${this._showIconsChanged}></ha-switch></ha-formfield>
+        <ha-formfield label="${this._t('enableSnooze')}"><ha-switch .checked=${this._config.enable_snooze !== false} @change=${this._enableSnoozeChanged}></ha-switch></ha-formfield>
       </div>
     `;
   }
@@ -1615,6 +1629,8 @@ class TodoListCardEditor extends LitElement {
   _showSearchButtonChanged(ev) { this.configChanged({ ...this._config, show_search_button: ev.target.checked }); }
   _showClearButtonChanged(ev) { this.configChanged({ ...this._config, show_clear_button: ev.target.checked }); }
   _quickAddChanged(ev) { this.configChanged({ ...this._config, quick_add: ev.target.checked }); }
+  _showIconsChanged(ev) { this.configChanged({ ...this._config, show_icons: ev.target.checked }); }
+  _enableSnoozeChanged(ev) { this.configChanged({ ...this._config, enable_snooze: ev.target.checked }); }
   static get styles() {
     return css`
       :host { --todo-card-field-background: var(--ha-color-form-background, var(--secondary-background-color, var(--ha-card-background, var(--card-background-color)))); }
