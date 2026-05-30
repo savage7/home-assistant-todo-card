@@ -1149,7 +1149,6 @@ class TodoListCard extends LitElement {
   return html`
     <div class="task-container">
       <div class="task-item ${isCompleted ? 'completed' : 'active'} ${dueDateStatus || ''}" style="background-color: ${isCompleted ? this._config.completed_color : this._config.card_color}; color: ${textColor};">
-        <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, task)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
         <div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>
         <div class="task-text" @click="${(e) => this._handleStatusUpdate(e, task)}">
           <div class="summary">
@@ -1173,6 +1172,7 @@ class TodoListCard extends LitElement {
         </div>
         ${!isCompleted ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, task)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
         <div class="expand-button" @click="${(e) => { e.stopPropagation(); this._toggleExpand(task.uid); }}"><ha-icon icon="${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}"></ha-icon></div>
+        <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, task)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
       </div>
       ${this._snoozeMenuTaskId === task.uid ? this._renderSnoozeMenu(task) : ''}
       ${this._expandedTaskId === task.uid ? this._renderSubtasks(task) : ''}
@@ -1199,7 +1199,6 @@ class TodoListCard extends LitElement {
   return html`
     <div class="task-container">
       <div class="task-item shopping-item ${isCompleted ? 'completed' : 'active'}" style="background-color: ${isCompleted ? this._config.completed_color : this._config.card_color}; color: ${textColor};">
-        <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, item)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
         ${showIcon ? html`<div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${icon}"></ha-icon></div>` : ''}
         <div class="task-text" style="${showIcon ? 'padding-left: 0;' : ''}" @click="${(e) => this._handleStatusUpdate(e, item)}">
           <div class="summary">
@@ -1218,6 +1217,7 @@ class TodoListCard extends LitElement {
         ${link ? html`<ha-icon class="link-button" icon="mdi:open-in-new" @click="${(e) => this._handleOpenLink(e, link)}"></ha-icon>` : ''}
         ${!isCompleted ? html`<div class="snooze-button" @click="${(e) => this._handleOpenSnoozeMenu(e, item)}"><ha-icon icon="${isSnoozed ? 'mdi:clock' : 'mdi:clock-outline'}"></ha-icon></div>` : ''}
         <div class="expand-button" @click="${(e) => { e.stopPropagation(); this._toggleExpand(item.uid); }}"><ha-icon icon="${isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'}"></ha-icon></div>
+        <div class="checkbox" @click="${(e) => this._handleStatusUpdate(e, item)}"><ha-icon icon="${isCompleted ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'}"></ha-icon></div>
       </div>
       ${this._snoozeMenuTaskId === item.uid ? this._renderSnoozeMenu(item) : ''}
       ${this._expandedTaskId === item.uid ? this._renderSubtasks(item) : ''}

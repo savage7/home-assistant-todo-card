@@ -185,7 +185,6 @@ const t=globalThis,e=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow
     `}_renderTask(t){const e="completed"===t.status,i=e?this._config.completed_text_color:this._config.text_color,s=t._cachedMetadata??{},o=s.description||null,a=s.priority||dt,n=s.icon||this._getDefaultTaskIcon(),r=t.due||null,d=this._getDueDateStatus(r),l=s.subtasks||[],c=l.filter(t=>"completed"===t.status).length,h=l.length,u=!!o,p=!e&&!!r,_=this._isSnoozed(t),m=this._expandedTaskId===t.uid;return R`
     <div class="task-container">
       <div class="task-item ${e?"completed":"active"} ${d||""}" style="background-color: ${e?this._config.completed_color:this._config.card_color}; color: ${i};">
-        <div class="checkbox" @click="${e=>this._handleStatusUpdate(e,t)}"><ha-icon icon="${e?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}"></ha-icon></div>
         <div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${n}"></ha-icon></div>
         <div class="task-text" @click="${e=>this._handleStatusUpdate(e,t)}">
           <div class="summary">
@@ -209,6 +208,7 @@ const t=globalThis,e=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow
         </div>
         ${e?"":R`<div class="snooze-button" @click="${e=>this._handleOpenSnoozeMenu(e,t)}"><ha-icon icon="${_?"mdi:clock":"mdi:clock-outline"}"></ha-icon></div>`}
         <div class="expand-button" @click="${e=>{e.stopPropagation(),this._toggleExpand(t.uid)}}"><ha-icon icon="${m?"mdi:chevron-up":"mdi:chevron-down"}"></ha-icon></div>
+        <div class="checkbox" @click="${e=>this._handleStatusUpdate(e,t)}"><ha-icon icon="${e?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}"></ha-icon></div>
       </div>
       ${this._snoozeMenuTaskId===t.uid?this._renderSnoozeMenu(t):""}
       ${this._expandedTaskId===t.uid?this._renderSubtasks(t):""}
@@ -217,7 +217,6 @@ const t=globalThis,e=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow
   `}_renderShoppingItem(t){const e="completed"===t.status,i=e?this._config.completed_text_color:this._config.text_color,s=t._cachedMetadata??{},o=s.description||null,a=s.link||null,n=s.quantity||null,r=s.subtasks||[],d=r.filter(t=>"completed"===t.status).length,l=r.length,c=s.icon||lt,h=c!==lt,u=this._isSnoozed(t),p=this._expandedTaskId===t.uid;return R`
     <div class="task-container">
       <div class="task-item shopping-item ${e?"completed":"active"}" style="background-color: ${e?this._config.completed_color:this._config.card_color}; color: ${i};">
-        <div class="checkbox" @click="${e=>this._handleStatusUpdate(e,t)}"><ha-icon icon="${e?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}"></ha-icon></div>
         ${h?R`<div class="icon" style="background-color: ${this._config.icon_background};"><ha-icon icon="${c}"></ha-icon></div>`:""}
         <div class="task-text" style="${h?"padding-left: 0;":""}" @click="${e=>this._handleStatusUpdate(e,t)}">
           <div class="summary">
@@ -236,6 +235,7 @@ const t=globalThis,e=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow
         ${a?R`<ha-icon class="link-button" icon="mdi:open-in-new" @click="${t=>this._handleOpenLink(t,a)}"></ha-icon>`:""}
         ${e?"":R`<div class="snooze-button" @click="${e=>this._handleOpenSnoozeMenu(e,t)}"><ha-icon icon="${u?"mdi:clock":"mdi:clock-outline"}"></ha-icon></div>`}
         <div class="expand-button" @click="${e=>{e.stopPropagation(),this._toggleExpand(t.uid)}}"><ha-icon icon="${p?"mdi:chevron-up":"mdi:chevron-down"}"></ha-icon></div>
+        <div class="checkbox" @click="${e=>this._handleStatusUpdate(e,t)}"><ha-icon icon="${e?"mdi:checkbox-marked":"mdi:checkbox-blank-outline"}"></ha-icon></div>
       </div>
       ${this._snoozeMenuTaskId===t.uid?this._renderSnoozeMenu(t):""}
       ${this._expandedTaskId===t.uid?this._renderSubtasks(t):""}
